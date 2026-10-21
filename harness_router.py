@@ -166,12 +166,26 @@ def route(capability: str) -> Optional[str]:
     """Route a capability to the best available harness.
 
     Returns the harness name, or None if no harness can handle it.
+    Supports fuzzy matching: if the exact capability is not found,
+    tries substring matching against known capabilities.
     """
+    # Exact match first
     candidates = _CAPABILITY_MAP.get(capability, [])
     for c in candidates:
         h = HARNESSES.get(c)
         if h and h.available:
             return c
+
+    # Fuzzy match: try substring matching
+    cap_lower = capability.lower().replace("-", "").replace("_", "")
+    for known_cap, harnesses in _CAPABILITY_MAP.items():
+        known_lower = known_cap.lower().replace("-", "").replace("_", "")
+        if cap_lower in known_lower or known_lower in cap_lower:
+            for c in harnesses:
+                h = HARNESSES.get(c)
+                if h and h.available:
+                    return c
+
     return None
 
 
@@ -196,6 +210,12 @@ def route_task(task: str) -> Dict[str, Any]:
         "batch": "batch",
         "headless": "headless",
         "interactive": "interactive",
+        "test": "single-file-edit",
+        "debug": "single-file-edit",
+        "review": "multi-file-refactor",
+        "deploy": "cloud",
+        "optimize": "heavy-compute",
+        "performance": "heavy-compute",
     }
     matched_caps = []
     for kw, cap in keywords.items():
