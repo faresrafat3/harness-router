@@ -233,8 +233,9 @@ class HarnessResult:
 
 def run(harness_name: str, prompt: str, model: Optional[str] = None,
         timeout: int = 120) -> HarnessResult:
-    """Run a task on a specific harness.
+    """Generate the command to run a task on a specific harness.
 
+    Returns the command as output. Does not execute — the caller runs it.
     All model usage is filtered to top-10. Free credits flow through dsh.
     """
     h = HARNESSES.get(harness_name)
@@ -247,38 +248,24 @@ def run(harness_name: str, prompt: str, model: Optional[str] = None,
         return HarnessResult(harness_name, model, "", 0.0, False,
                             f"model '{model}' is not in top-10 list")
 
-    start = time.monotonic()
-    try:
-        if harness_name == "kilo":
-            cmd = ["kilo", "run", prompt]
-        elif harness_name == "opencode2":
-            cmd = ["opencode2", "run", prompt]
-        elif harness_name == "dsh":
-            cmd = ["dsh", "run", prompt]
-        elif harness_name in ("cline", "cline-cloud"):
-            cmd = ["cline", "--task", prompt]
-        else:
-            return HarnessResult(harness_name, model or "", "", 0.0, False,
-                                f"unknown harness '{harness_name}'")
+    # Generate the correct command for each harness
+    if harness_name == "kilo":
+        cmd = ["kilo", "run", prompt, "--auto"]
+    elif harness_name == "opencode2":
+        cmd = ["opencode2", "--auto", "--prompt", prompt]
+    elif harness_name == "dsh":
+        cmd = ["dsh", "headless", prompt]
+    elif harness_name in ("cline", "cline-cloud"):
+        cmd = ["cline", "--task", prompt, "--auto-approve"]
+    else:
+        return HarnessResult(harness_name, model or "", "", 0.0, False,
+                            f"unknown harness '{harness_name}'")
 
-        if model:
-            cmd.extend(["--model", model])
+    if model:
+        cmd.extend(["--model", model])
 
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
-        )
-        duration = time.monotonic() - start
-        ok = result.returncode == 0
-        output = result.stdout or ""
-        error = result.stderr if not ok else ""
-        return HarnessResult(harness_name, model or "", output, duration, ok, error)
-
-    except subprocess.TimeoutExpired:
-        return HarnessResult(harness_name, model or "", "", time.monotonic() - start,
-                            False, f"timeout after {timeout}s")
-    except Exception as e:
-        return HarnessResult(harness_name, model or "", "", time.monotonic() - start,
-                            False, str(e))
+    cmd_str = " ".join(cmd)
+    return HarnessResult(harness_name, model or "", cmd_str, 0.0, True, "")
 
 
 # --- status ------------------------------------------------------------------------------

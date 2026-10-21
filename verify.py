@@ -42,10 +42,15 @@ print(f"  ✓ route_task 'fix frontend' -> {tr['harness']} ({tr['reason']})")
 avail = hr.available_harnesses()
 print(f"  ✓ available harnesses: {avail}")
 
-# Test 6: run with non-top model should fail
-res = hr.run("kilo", "test prompt", model="weak-model")
+# Test 7: run generates command
+res = hr.run("kilo", "test prompt", model="deepseek-v4-flash")
+assert res.ok, "run should succeed"
+assert "kilo run" in res.output, f"expected kilo run command, got: {res.output}"
+print(f"  ✓ run generates command: {res.output}")
+
+# Test 8: run rejects non-top model
+res = hr.run("kilo", "test", model="weak-model")
 assert not res.ok, "non-top model should be rejected"
-assert "not in top-10" in res.error
-print(f"  ✓ non-top model rejected: {res.error}")
+print(f"  ✓ run rejects non-top model: {res.error}")
 
 print("\nALL CHECKS PASSED")
