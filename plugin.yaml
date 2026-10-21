@@ -1,0 +1,6 @@
+name: harness-router
+version: 1.0.0
+description: "Harness router: wraps external coding harnesses (kilo, opencode2, dsh, cline) as niche agents available to every Hermes bot. Routes tasks to the best harness by capability, consolidates free LLM credits through dsh, and restricts to top-10 models only. One general workflow — system of systems."
+author: "Hermes crew"
+provides_hooks:
+  - pre_tool_call
